@@ -1,0 +1,1 @@
+cp -n .env.example .env
