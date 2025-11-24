@@ -1,9 +1,4 @@
-//@ts-check
-
-/**
- * @param {string} name
- * @returns {string}
- */
+// client/src/config.js
 function getEnvVar(name) {
   const val = process.env[name];
   if (!val) {
