@@ -21,81 +21,80 @@ import { useClient } from "../hooks/useClient";
 
 const IssuerIsRegistered = () => {
   const { client } = useClient();
-  const [certiCount, setCertiCount] = useState(0);
   const [certificates, setCertificates] = useState([]);
+  const [certiCount, setCertiCount] = useState(0);
   const navigate = useNavigate();
 
-  // ✅ Chakra hook values (must be top-level)
   const tableHeadBg = useColorModeValue("teal.200", "teal.700");
   const tableBodyBg = useColorModeValue("teal.50", "gray.700");
   const tableRowHoverBg = useColorModeValue("teal.100", "gray.600");
 
+  const parseCertificate = (res) => ({
+    name: res[0],
+    issuerAddr: res[1],
+    userAddr: res[2],
+    uuid: res[3],
+    ipfsUrl: res[4],
+    isValid: res[5],
+  });
+
   useEffect(() => {
-    async function fn() {
-      if (client) {
-        let res = await client.getCertificatesIssuedBy();
-        setCertificates(res);
-        setCertiCount(res.length);
+    async function load() {
+      if (!client) return;
+
+      const ids = await client.getCertificatesIssuedBy();
+      const list = [];
+
+      for (let uuid of ids) {
+        const r = await client.getCertificate(uuid);
+        list.push(parseCertificate(r));
       }
+
+      setCertificates(list);
+      setCertiCount(list.length);
     }
-    fn();
+    load();
   }, [client]);
 
   return (
     <main className={styles.main}>
-      <Container py={{ base: "10", md: "12" }} maxW={"7xl"}>
-        {/* Header */}
+      <Container py="10" maxW="7xl">
         <HStack spacing={2}>
           <SkeletonCircle size="4" />
-          <Heading as="h4" fontSize="2xl" textAlign="left" ml="-2">
-            You have issued {certiCount} Certificates
-          </Heading>
+          <Heading as="h4" fontSize="2xl">You have issued {certiCount} Certificates</Heading>
         </HStack>
 
-        <Divider marginTop="4" />
+        <Divider mt="4" />
 
-        {/* Issue Button */}
         <Box my={5}>
-          <Link to={`/issuer/new-certificate`}>
-            <Button colorScheme="teal" size="lg">
-              Issue New Certificate
-            </Button>
+          <Link to="/issuer/new-certificate">
+            <Button colorScheme="teal" size="lg">Issue New Certificate</Button>
           </Link>
         </Box>
 
-        {/* Table */}
         <Box overflowX="auto" mt={6}>
           <Table size="lg">
             <Thead bg={tableHeadBg}>
               <Tr>
-                <Th fontSize="lg">Name</Th>
-                <Th fontSize="lg">UUID</Th>
-                <Th fontSize="lg">Issued To</Th>
-                <Th fontSize="lg">Actions</Th>
+                <Th>Name</Th>
+                <Th>UUID</Th>
+                <Th>Issued To</Th>
+                <Th>Actions</Th>
               </Tr>
             </Thead>
-            <Tbody bg={tableBodyBg} opacity="0.95">
-              {certificates.map((cert) => (
-                <Tr
-                  key={cert.uuid}
-                  _hover={{ bg: tableRowHoverBg, transition: "0.2s" }}
-                >
-                  <Td fontSize="md" fontWeight="medium">
-                    {cert.name}
-                  </Td>
-                  <Td fontSize="sm" fontFamily="mono" isTruncated maxW="200px">
-                    {cert.uuid}
-                  </Td>
-                  <Td fontSize="md" isTruncated maxW="250px">
-                    {cert.userAddr}
-                  </Td>
+
+            <Tbody bg={tableBodyBg}>
+              {certificates.map((cert, i) => (
+                <Tr key={cert.uuid + "_" + i} _hover={{ bg: tableRowHoverBg }}>
+                  <Td>{cert.name}</Td>
+                  <Td>{cert.uuid}</Td>
+                  <Td>{cert.userAddr}</Td>
                   <Td>
                     <Button
-                      size="md"
                       colorScheme="teal"
                       onClick={() => navigate("/certificate/" + cert.uuid)}
                     >
-                      View Certificate
+                      View
                     </Button>
                   </Td>
                 </Tr>

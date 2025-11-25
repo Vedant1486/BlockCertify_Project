@@ -1,3 +1,4 @@
+// client/src/pages/CertificatePage.js
 import React, { useState, useEffect } from "react";
 import {
   Heading,
@@ -22,35 +23,105 @@ import { useClient } from "../hooks/useClient";
 import { useParams } from "react-router-dom";
 import { useProfile } from "../hooks/useProfile";
 import { QRCodeCanvas } from "qrcode.react";
+import { BrowserProvider } from "ethers";
 import styles from "../styles/Home.module.css";
 
 const CertificatePage = () => {
   const params = useParams();
-  const { client } = useClient();
+  const { client } = useClient(); // client is expected to be an ethers.Contract connected to signer or signer-ready
   const { profile } = useProfile();
 
   const [isLoading, setIsLoading] = useState(true);
   const [certificate, setCertificate] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [issuerProfile, setIssuerProfile] = useState(null);
+  const [txPending, setTxPending] = useState(false);
 
   const teal200700 = useColorModeValue("teal.200", "teal.700");
   const teal100700 = useColorModeValue("teal.100", "teal.700");
 
+  // helper to normalize the tuple returned by contract.getCertificate
+  const parseCertificate = (res) => {
+    if (!res) return null;
+    return {
+      name: res[0],
+      issuerAddr: res[1],
+      userAddr: res[2],
+      uuid: res[3],
+      ipfsUrl: res[4],
+      isValid: res[5],
+    };
+  };
+
+  // Invalidate action — only triggered by issuer (button is shown only for issuer)
   const invalidateCertificateAction = async (uuid) => {
+    if (!client) {
+      alert("Client not initialized");
+      return;
+    }
+    if (!window.ethereum) {
+      alert("MetaMask not found");
+      return;
+    }
+    if (!uuid) {
+      alert("Certificate id missing");
+      return;
+    }
+
     try {
-      await client.invalidateCertificate(uuid);
-      const res = await client.getCertificate(uuid);
-      setCertificate(res);
+      setTxPending(true);
+
+      // If client is an ethers.Contract instance, connect signer and call
+      if (client && typeof client.connect === "function") {
+        const provider = new BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contractWithSigner = client.connect(signer);
+        const tx = await contractWithSigner.invalidateCertificate(uuid);
+        await tx.wait();
+      } else if (client && typeof client.invalidateCertificate === "function") {
+        // fallback for custom wrapper which may return tx or boolean
+        const res = await client.invalidateCertificate(uuid);
+        if (res && typeof res.wait === "function") await res.wait();
+      } else {
+        throw new Error("Client does not support invalidate operation");
+      }
+
+      // Re-fetch certificate to update UI
+      const fresh = await client.getCertificate(uuid);
+      const cert = parseCertificate(fresh);
+      setCertificate(cert);
+
+      // refresh profiles (best-effort)
+      if (cert?.userAddr) {
+        try {
+          const u = await client.getProfileByAddress(cert.userAddr);
+          setUserProfile({ address: u[0], name: u[1], role: u[2] });
+        } catch {}
+      }
+      if (cert?.issuerAddr) {
+        try {
+          const i = await client.getProfileByAddress(cert.issuerAddr);
+          setIssuerProfile({ address: i[0], name: i[1], role: i[2] });
+        } catch {}
+      }
+
+      alert("Certificate invalidated (on-chain confirmation received).");
     } catch (err) {
       console.error("Error invalidating certificate:", err);
+      if (err?.data?.message) {
+        alert("Transaction failed: " + err.data.message);
+      } else if (err?.message) {
+        alert("Error: " + err.message);
+      } else {
+        alert("Failed to invalidate certificate — see console for details.");
+      }
+    } finally {
+      setTxPending(false);
     }
   };
 
   const downloadCertificate = () => {
-    if (certificate?.ipfsUrl) {
-      window.open(certificate.ipfsUrl, "_blank");
-    }
+    if (certificate?.ipfsUrl) window.open(certificate.ipfsUrl, "_blank");
   };
 
   useEffect(() => {
@@ -59,37 +130,43 @@ const CertificatePage = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const certRes = await client.getCertificate(params.uuid);
-        if (!certRes) throw new Error("Certificate not found");
+        const res = await client.getCertificate(params.uuid);
+        const cert = parseCertificate(res);
+        console.log("Fetched certificate:", cert);
+        console.log("🔍 Debug Addresses:");
+console.log("MetaMask account:", acctAddr);
+console.log("Issuer of cert:", cert.issuerAddr);
+console.log("Student of cert:", cert.userAddr);
+console.log("isIssuer:", acctAddr === cert.issuerAddr?.toLowerCase());
+console.log("isStudent:", acctAddr === cert.userAddr?.toLowerCase());
 
-        console.log("Fetched certificate:", certRes);
 
         let userRes = null;
         let issuerRes = null;
 
-        // Fetch user profile only if userAddr exists
-        if (certRes.userAddr) {
+        if (cert?.userAddr) {
           try {
-            userRes = await client.getProfileByAddress(certRes.userAddr);
+            const u = await client.getProfileByAddress(cert.userAddr);
+            userRes = { address: u[0], name: u[1], role: u[2] };
           } catch {
-            console.warn("Unable to fetch user profile");
+            console.warn("Unable to fetch user profile for", cert.userAddr);
           }
         } else {
           console.warn("No userAddr in certificate");
         }
 
-        // Fetch issuer profile only if issuerAddr exists
-        if (certRes.issuerAddr) {
+        if (cert?.issuerAddr) {
           try {
-            issuerRes = await client.getProfileByAddress(certRes.issuerAddr);
+            const i = await client.getProfileByAddress(cert.issuerAddr);
+            issuerRes = { address: i[0], name: i[1], role: i[2] };
           } catch {
-            console.warn("Unable to fetch issuer profile");
+            console.warn("Unable to fetch issuer profile for", cert.issuerAddr);
           }
         } else {
           console.warn("No issuerAddr in certificate");
         }
 
-        setCertificate(certRes);
+        setCertificate(cert);
         setUserProfile(userRes);
         setIssuerProfile(issuerRes);
       } catch (err) {
@@ -102,20 +179,26 @@ const CertificatePage = () => {
     fetchData();
   }, [client, params.uuid]);
 
-  const isIssuer = profile?.address?.toLowerCase() === certificate?.issuerAddr?.toLowerCase();
-  const isStudent = profile?.address?.toLowerCase() === certificate?.userAddr?.toLowerCase();
+  // defensive lowercase comparisons
+  const acctAddr = profile?.address ? profile.address.toLowerCase() : null;
+  const certIssuer = certificate?.issuerAddr ? certificate.issuerAddr.toLowerCase() : null;
+  const certUser = certificate?.userAddr ? certificate.userAddr.toLowerCase() : null;
+
+  const isIssuer = acctAddr && certIssuer && acctAddr === certIssuer;
+  const isStudent = acctAddr && certUser && acctAddr === certUser;
 
   return (
     <main className={styles.main}>
       <Container py={{ base: "10", md: "12" }} maxW="6xl">
-        {/* Header */}
         <HStack spacing={2} mb={4}>
           <SkeletonCircle size="4" />
           {!isLoading ? (
             <Heading as="h4" size="lg" ml="-2">
               Certificate{" "}
               <Text as="span" color="teal.500">{certificate?.name || "Unnamed"}</Text>{" "}
-              for <Text as="span" color="teal.400">{userProfile?.name || certificate?.userAddr}</Text> by{" "}
+              for{" "}
+              <Text as="span" color="teal.400">{userProfile?.name || certificate?.userAddr}</Text>{" "}
+              by{" "}
               <Text as="span" color="teal.600">{issuerProfile?.name || certificate?.issuerAddr}</Text>
             </Heading>
           ) : (
@@ -125,65 +208,75 @@ const CertificatePage = () => {
 
         <Divider mt={4} />
 
-        {/* Certificate Details Table */}
         <Box overflowX="auto" mt={4}>
           <Table variant="striped" colorScheme="teal">
             <Tbody>
               <Tr>
                 <Th bg={teal200700}>Name of Issuer</Th>
-                <Td bg={teal100700} opacity="0.9">
-                  {isLoading ? "Loading..." : issuerProfile?.name || certificate?.issuerAddr || "N/A"}
-                </Td>
+                <Td bg={teal100700}>{issuerProfile?.name || certificate?.issuerAddr || "N/A"}</Td>
               </Tr>
               <Tr>
                 <Th bg={teal200700}>Name of Student</Th>
-                <Td bg={teal100700} opacity="0.9">
-                  {isLoading ? "Loading..." : userProfile?.name || certificate?.userAddr || "N/A"}
-                </Td>
+                <Td bg={teal100700}>{userProfile?.name || certificate?.userAddr || "N/A"}</Td>
               </Tr>
               <Tr>
                 <Th bg={teal200700}>Issuer Address</Th>
-                <Td bg={teal100700} opacity="0.9">{certificate?.issuerAddr || "Loading..."}</Td>
+                <Td bg={teal100700}>{certificate?.issuerAddr || "Loading..."}</Td>
               </Tr>
               <Tr>
                 <Th bg={teal200700}>Student Address</Th>
-                <Td bg={teal100700} opacity="0.9">{certificate?.userAddr || "Loading..."}</Td>
+                <Td bg={teal100700}>{certificate?.userAddr || "Loading..."}</Td>
               </Tr>
+
               <Tr>
                 <Th bg={teal200700}>IPFS Link</Th>
-                <Td bg={teal100700} opacity="0.9">
+                <Td bg={teal100700}>
                   {certificate?.ipfsUrl ? (
-                    <Button as="a" href={certificate.ipfsUrl} target="_blank" rel="noopener noreferrer" size="sm" colorScheme="teal">
+                    <Button
+                      as="a"
+                      href={certificate.ipfsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      size="sm"
+                      colorScheme="teal"
+                    >
                       View / Download
                     </Button>
                   ) : "Loading..."}
                 </Td>
               </Tr>
+
               <Tr>
                 <Th bg={teal200700}>Certificate Status</Th>
-                <Td bg={teal100700} opacity="0.9">
-                  {certificate ? (
+                <Td bg={teal100700}>
+                  {typeof certificate?.isValid === "boolean" ? (
                     certificate.isValid ? (
-                      <Badge colorScheme="green" p={2} borderRadius="md">✅ Valid Certificate</Badge>
+                      <Badge colorScheme="green" p={2}>✅ Valid Certificate</Badge>
                     ) : (
-                      <Badge colorScheme="red" p={2} borderRadius="md">❌ Invalid / Revoked</Badge>
+                      <Badge colorScheme="red" p={2}>❌ Invalid / Revoked</Badge>
                     )
-                  ) : "Loading..."}
+                  ) : (
+                    "Loading..."
+                  )}
                 </Td>
               </Tr>
 
-              {/* Role-based Actions */}
-              {certificate?.isValid && !isLoading && (
+              {certificate && (
                 <Tr>
                   <Th bg={teal200700}>Action</Th>
-                  <Td bg={teal100700} opacity="0.9">
-                    {isIssuer && (
-                      <Button colorScheme="red" onClick={() => invalidateCertificateAction(certificate.uuid)}>
+                  <Td bg={teal100700}>
+                    {isIssuer && certificate.isValid && (
+                      <Button
+                        colorScheme="red"
+                        onClick={() => invalidateCertificateAction(certificate.uuid)}
+                        isLoading={txPending}
+                        loadingText="Invalidating..."
+                      >
                         Invalidate Certificate
                       </Button>
                     )}
                     {isStudent && (
-                      <Button colorScheme="teal" ml={2} onClick={downloadCertificate}>
+                      <Button ml={2} colorScheme="teal" onClick={downloadCertificate}>
                         Download Certificate
                       </Button>
                     )}
@@ -195,7 +288,6 @@ const CertificatePage = () => {
           </Table>
         </Box>
 
-        {/* QR Code */}
         {!isLoading && certificate && (
           <Center mt={10}>
             <VStack spacing={3}>
@@ -203,12 +295,9 @@ const CertificatePage = () => {
               <QRCodeCanvas
                 value={`${window.location.origin}/certificate/${certificate.uuid}`}
                 size={180}
-                bgColor="#ffffff"
-                fgColor="#000000"
                 level="H"
-                includeMargin={true}
               />
-              <Text fontSize="sm" color="gray.500">Scan this QR code to verify the certificate</Text>
+              <Text fontSize="sm" color="gray.500">Scan this QR to verify the certificate</Text>
             </VStack>
           </Center>
         )}
