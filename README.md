@@ -82,8 +82,5 @@ IPFS link
 Anyone can verify certificate on the Blockchain
 If admin invalidates the certificate → marked as invalid
 
-📜 License
-This project is licensed under the MIT License.
-
 💡 Contributions
 Pull requests are welcome! For major changes, please open an issue first to discuss what you’d like to modify.
