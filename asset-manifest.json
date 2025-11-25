@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/BlockCertify_Project/static/css/main.bfc890ea.css",
+    "main.js": "/BlockCertify_Project/static/js/main.ec61da73.js",
+    "index.html": "/BlockCertify_Project/index.html",
+    "main.bfc890ea.css.map": "/BlockCertify_Project/static/css/main.bfc890ea.css.map",
+    "main.ec61da73.js.map": "/BlockCertify_Project/static/js/main.ec61da73.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.bfc890ea.css",
+    "static/js/main.ec61da73.js"
+  ]
+}
