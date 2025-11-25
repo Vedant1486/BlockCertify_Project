@@ -31,22 +31,6 @@ Issue certificates
 Invalidate certificates
 View issued certificate list
 
-📁 Project Structure
-BlockCertify
-│── client/           # React Frontend
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── context/  # ClientProvider, Contract connection
-│   │   ├── abi.json
-│   │   └── App.js
-│── contracts/        # Solidity Smart Contracts
-│   ├── BlockCertify.sol
-│   └── EtherDocs.sol
-│── scripts/
-│── test/
-│── hardhat.config.js
-
 ⚙️ Tech Stack
 🛠 Backend / Blockchain
 Solidity
