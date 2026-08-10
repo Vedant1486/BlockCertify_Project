@@ -23,14 +23,13 @@ export function ClientProvider({ children }) {
         // 1) ensure user allows accounts
         await window.ethereum.request({ method: "eth_requestAccounts" });
 
-        // 2) request network switch to Sepolia (11155111 == 0xaa36a7)
+        // 2) request network switch to Sepolia (0xaa36a7 == 11155111)
         try {
           await window.ethereum.request({
             method: "wallet_switchEthereumChain",
             params: [{ chainId: "0xaa36a7" }],
           });
         } catch (switchErr) {
-          // If Sepolia not added, try to add it
           if (switchErr.code === 4902) {
             await window.ethereum.request({
               method: "wallet_addEthereumChain",
@@ -38,14 +37,13 @@ export function ClientProvider({ children }) {
                 {
                   chainId: "0xaa36a7",
                   chainName: "Sepolia Testnet",
-                  rpcUrls: [process.env.REACT_APP_NETWORK_RPC || "https://eth-sepolia.g.alchemy.com/v2/REPLACE_ME"],
+                  rpcUrls: ["https://eth-sepolia.g.alchemy.com/v2/alch_NdmKpqsE7xM1eMzC-UMoo"],
                   nativeCurrency: { name: "Sepolia ETH", symbol: "ETH", decimals: 18 },
                   blockExplorerUrls: ["https://sepolia.etherscan.io"],
                 },
               ],
             });
           } else {
-            // If user rejected or other error, rethrow to be handled below
             throw switchErr;
           }
         }

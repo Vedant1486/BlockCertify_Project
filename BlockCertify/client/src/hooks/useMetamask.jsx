@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import EtherDocsClient from "../lib/EtherDocsClient";
-import abi from "../abi.json";
 import config from "../config";
 import { useProfile } from "./useProfile";
 import { useClient } from "./useClient";
@@ -22,23 +21,23 @@ export const MetamaskProvider = ({ children }) => {
     }
 
     try {
-      // Switch network to localhost
+      // Switch network to Sepolia
       try {
         await window.ethereum.request({
           method: "wallet_switchEthereumChain",
-          params: [{ chainId: "0x7A69" }], // Hardhat default
+          params: [{ chainId: "0xaa36a7" }],
         });
       } catch (switchError) {
-        // Add chain if not exists
         if (switchError.code === 4902) {
           await window.ethereum.request({
             method: "wallet_addEthereumChain",
             params: [
               {
-                chainId: "0x7A69",
-                chainName: "Localhost 8545",
-                rpcUrls: ["http://127.0.0.1:8545"],
-                nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+                chainId: "0xaa36a7",
+                chainName: "Sepolia Testnet",
+                rpcUrls: ["https://eth-sepolia.g.alchemy.com/v2/alch_NdmKpqsE7xM1eMzC-UMoo"],
+                nativeCurrency: { name: "Sepolia ETH", symbol: "ETH", decimals: 18 },
+                blockExplorerUrls: ["https://sepolia.etherscan.io"],
               },
             ],
           });
@@ -56,7 +55,7 @@ export const MetamaskProvider = ({ children }) => {
 
       // Setup client
       const client = new EtherDocsClient();
-      await client.setup(abi, config.contractAddress);
+      await client.setup(config.contractAddress);
       setClient(client);
 
       const profileRet = await client.getProfile();

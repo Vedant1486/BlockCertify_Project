@@ -14,7 +14,6 @@ class EtherDocsClient {
     if (!window.ethereum) throw new Error("MetaMask not found");
     await window.ethereum.request({ method: "eth_requestAccounts" });
 
-    // switch to Sepolia
     try {
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
@@ -28,7 +27,7 @@ class EtherDocsClient {
             {
               chainId: "0xaa36a7",
               chainName: "Sepolia Testnet",
-              rpcUrls: [process.env.REACT_APP_NETWORK_RPC || "https://eth-sepolia.g.alchemy.com/v2/REPLACE_ME"],
+              rpcUrls: ["https://eth-sepolia.g.alchemy.com/v2/alch_NdmKpqsE7xM1eMzC-UMoo"],
               nativeCurrency: { name: "Sepolia ETH", symbol: "ETH", decimals: 18 },
               blockExplorerUrls: ["https://sepolia.etherscan.io"],
             },
