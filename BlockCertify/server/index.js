@@ -90,6 +90,7 @@ app.use(morgan("common"));
 
 app.get("/", (req, res) => res.json({ status: "ok" }));
 app.get("/healthcheck", (req, res) => res.json({ status: "ok" }));
+app.use("/files", express.static(APPENDED_DIR));
 
 if (NODE_ENV === "development") {
   app.get("/calculatehash", (req, res) => {
@@ -141,12 +142,21 @@ app.post(
       await appendUUIDtoPDF(id, req.file.path, appendedFilePath);
 
       const hash = await sha256(appendedFilePath);
-      const cid = await uploadFileToIPFS(appendedFilePath);
+
+      // Try IPFS upload, fall back to local URL if IPFS is unavailable
+      let ipfsLink = `http://localhost:${PORT}/files/${id}.pdf`;
+      let cid = id;
+      try {
+        cid = await uploadFileToIPFS(appendedFilePath);
+        ipfsLink = `http://127.0.0.1:8081/ipfs/${cid}?filename=${id}.pdf`;
+      } catch (ipfsErr) {
+        console.warn("⚠️ IPFS unavailable, using local file URL:", ipfsErr.message);
+      }
 
       res.json({
         uuid: id,
         hash,
-        ipfsLink: `https://ipfs.io/ipfs/${cid}?filename=${id}.pdf`,
+        ipfsLink,
         cid,
       });
     } catch (err) {

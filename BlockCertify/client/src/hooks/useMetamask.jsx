@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import EtherDocsClient from "../lib/EtherDocsClient";
-import Etherdocs from "../lib/Etherdocs.json";
+import abi from "../abi.json";
 import config from "../config";
 import { useProfile } from "./useProfile";
 import { useClient } from "./useClient";
@@ -56,7 +56,7 @@ export const MetamaskProvider = ({ children }) => {
 
       // Setup client
       const client = new EtherDocsClient();
-      await client.setup(Etherdocs.abi, config.contractAddress);
+      await client.setup(abi, config.contractAddress);
       setClient(client);
 
       const profileRet = await client.getProfile();

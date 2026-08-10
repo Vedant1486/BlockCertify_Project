@@ -21,7 +21,7 @@ import { useProfile } from "./hooks/useProfile";
 import { useClient } from "./hooks/useClient";
 import { useMetamask } from "./hooks/useMetamask";
 import EtherDocsClient from "./lib/EtherDocsClient";
-import Etherdocs from "./lib/Etherdocs.json";
+import abi from "./abi.json";
 import config from "./config";
 
 function App() {
@@ -38,7 +38,7 @@ function App() {
           await window.ethereum.request({ method: "eth_requestAccounts" });
 
           const client = new EtherDocsClient();
-          await client.setup(Etherdocs.abi, config.contractAddress);
+          await client.setup(abi, config.contractAddress);
           setClient(client);
           window.__etherdocs = client;
 

@@ -1,9 +1,9 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "C:\\Users\\Lenovo\\OneDrive\\Desktop\\Major_Project1\\BlockCertify\\smart_contracts\\contracts\\EtherDocs.sol": {
-      "lastModificationDate": 1759676514314,
-      "contentHash": "354bf22146b51c1481b2b453e3d9a686",
+    "C:\\Users\\Lenovo\\OneDrive\\Desktop\\BTech_project\\BlockCertify_Project\\BlockCertify\\smart_contracts\\contracts\\EtherDocs.sol": {
+      "lastModificationDate": 1763651911444,
+      "contentHash": "4e933ee6a17722f9a91e84f12fa59363",
       "sourceName": "contracts/EtherDocs.sol",
       "solcConfig": {
         "version": "0.8.20",
