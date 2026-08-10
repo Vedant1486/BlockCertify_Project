@@ -1,15 +1,9 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   Heading,
   useBreakpointValue,
   useColorModeValue,
-  Button,
   Container,
-  SimpleGrid,
-  Divider,
-  Icon,
-  SkeletonCircle,
-  HStack,
 } from "@chakra-ui/react";
 import styles from "../styles/Home.module.css";
 const WarningInstallMetaMask = () => {
