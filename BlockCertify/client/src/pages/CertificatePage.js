@@ -133,12 +133,6 @@ const CertificatePage = () => {
         const res = await client.getCertificate(params.uuid);
         const cert = parseCertificate(res);
         console.log("Fetched certificate:", cert);
-        console.log("🔍 Debug Addresses:");
-console.log("MetaMask account:", acctAddr);
-console.log("Issuer of cert:", cert.issuerAddr);
-console.log("Student of cert:", cert.userAddr);
-console.log("isIssuer:", acctAddr === cert.issuerAddr?.toLowerCase());
-console.log("isStudent:", acctAddr === cert.userAddr?.toLowerCase());
 
 
         let userRes = null;
